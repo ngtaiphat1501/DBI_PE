@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DBI202 // Query Console</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --ink:#0b0f14;
+  --panel:#111820;
+  --panel-2:#161f2b;
+  --panel-3:#1c2733;
+  --border:#263342;
+  --border-soft:#1c2632;
+  --text:#dfe7ee;
+  --text-dim:#7f8fa1;
+  --text-dimmer:#566578;
+  --amber:#f2a65a;
+  --amber-soft:#ad7a49;
+  --teal:#3ddac2;
+  --teal-dim:#1f6e64;
+  --coral:#ff7a7a;
+  --coral-dim:#7a3737;
+  --good:#8ee6a8;
+}
+
+*{box-sizing:border-box; margin:0; padding:0;}
+
+html,body{
+  background:var(--ink);
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  min-height:100vh;
+}
+
+::selection{ background:var(--amber); color:#000; }
+
+/* ---------- layout ---------- */
+.app{
+  display:grid;
+  grid-template-columns:280px 1fr;
+  min-height:100vh;
+}
+
+@media (max-width:880px){
+  .app{ grid-template-columns:1fr; }
+  .sidebar{ position:static; height:auto; border-right:none; border-bottom:1px solid var(--border); }
+}
+
+/* ---------- sidebar ---------- */
+.sidebar{
+  position:sticky; top:0; height:100vh; overflow-y:auto;
+  background:var(--panel);
+  border-right:1px solid var(--border);
+  padding:22px 18px 30px;
+  display:flex; flex-direction:column; gap:22px;
+}
+@media (max-width:880px){ .sidebar{ height:auto; } }
+
+.brand{
+  font-family:'JetBrains Mono',monospace;
+  line-height:1.3;
+}
+.brand .tag{
+  font-size:11px; letter-spacing:.14em; color:var(--teal); text-transform:uppercase;
+}
+.brand h1{
+  font-size:20px; font-weight:800; margin-top:4px; color:var(--text);
+}
+.brand .sub{
+  font-size:12px; color:var(--text-dimmer); margin-top:6px;
+}
+
+.progress-block{
+  background:var(--panel-2);
+  border:1px solid var(--border-soft);
+  border-radius:10px;
+  padding:14px;
+  font-family:'JetBrains Mono',monospace;
+}
+.progress-block .row{
+  display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px;
+}
+.progress-block .row span:first-child{ font-size:11px; color:var(--text-dim); letter-spacing:.05em; }
+.progress-block .row span:last-child{ font-size:13px; color:var(--amber); font-weight:700; }
+.bar-track{
+  height:6px; background:var(--panel-3); border-radius:99px; overflow:hidden;
+}
+.bar-fill{
+  height:100%; background:linear-gradient(90deg,var(--teal),var(--amber));
+  width:0%; transition:width .4s ease;
+}
+
+nav.topics{
+  display:flex; flex-direction:column; gap:4px;
+}
+.topic-btn{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  background:transparent; border:1px solid transparent; color:var(--text-dim);
+  font-family:'JetBrains Mono',monospace; font-size:12.5px;
+  padding:9px 10px; border-radius:8px; cursor:pointer; text-align:left;
+  transition:background .15s,color .15s,border-color .15s;
+}
+.topic-btn:hover{ background:var(--panel-2); color:var(--text); }
+.topic-btn.active{
+  background:var(--panel-3); color:var(--amber); border-color:var(--border);
+}
+.topic-btn .n{
+  font-size:10px; color:var(--text-dimmer); background:var(--panel); padding:1px 6px; border-radius:99px;
+}
+.topic-btn.active .n{ color:var(--amber); }
+
+.sidebar-footer{
+  margin-top:auto; font-size:11px; color:var(--text-dimmer); font-family:'JetBrains Mono',monospace;
+  border-top:1px solid var(--border-soft); padding-top:14px;
+}
+
+/* ---------- main ---------- */
+main{ padding:34px 40px 80px; max-width:920px; }
+@media (max-width:880px){ main{ padding:24px 18px 60px; } }
+
+.terminal-hero{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:20px 22px;
+  margin-bottom:28px;
+  font-family:'JetBrains Mono',monospace;
+  overflow:hidden;
+}
+.terminal-hero .dots{ display:flex; gap:6px; margin-bottom:14px; }
+.terminal-hero .dots span{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+.terminal-hero .dots span:nth-child(1){ background:#ff6b6b55; border:1px solid #ff6b6b; }
+.terminal-hero .dots span:nth-child(2){ background:#f2a65a55; border:1px solid #f2a65a; }
+.terminal-hero .dots span:nth-child(3){ background:#8ee6a855; border:1px solid #8ee6a8; }
+.terminal-hero .line{ font-size:13.5px; color:var(--text-dim); white-space:pre-wrap; }
+.terminal-hero .prompt{ color:var(--teal); }
+.terminal-hero .typed{ color:var(--text); }
+.terminal-hero .cursor{
+  display:inline-block; width:8px; height:15px; background:var(--amber);
+  vertical-align:middle; animation:blink 1s step-end infinite; margin-left:2px;
+}
+@keyframes blink{ 50%{ opacity:0; } }
+
+.searchbar{
+  display:flex; align-items:center; gap:10px;
+  background:var(--panel); border:1px solid var(--border); border-radius:10px;
+  padding:10px 14px; margin-bottom:26px;
+}
+.searchbar svg{ flex:none; opacity:.5; }
+.searchbar input{
+  flex:1; background:transparent; border:none; outline:none; color:var(--text);
+  font-family:'JetBrains Mono',monospace; font-size:13px;
+}
+.searchbar input::placeholder{ color:var(--text-dimmer); }
+
+.section-title{
+  font-family:'JetBrains Mono',monospace;
+  font-size:13px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--teal); margin:0 0 4px;
+}
+.section-desc{
+  color:var(--text-dim); font-size:14px; margin-bottom:20px; line-height:1.6;
+}
+
+/* ---------- question card ---------- */
+.card{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:12px;
+  margin-bottom:16px;
+  overflow:hidden;
+  transition:border-color .15s;
+}
+.card.done{ border-color:var(--teal-dim); }
+
+.card-head{
+  display:flex; gap:12px; align-items:flex-start;
+  padding:16px 18px;
+}
+.card-check{
+  flex:none; width:20px; height:20px; margin-top:2px;
+  border-radius:5px; border:1.5px solid var(--border);
+  background:var(--panel-2); cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; color:transparent;
+  transition:all .15s;
+}
+.card-check.checked{ background:var(--teal-dim); border-color:var(--teal); color:var(--teal); }
+
+.card-body{ flex:1; }
+.card-tags{ display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+.tag{
+  font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.06em;
+  padding:2px 8px; border-radius:99px; text-transform:uppercase; font-weight:700;
+}
+.tag.hard{ background:#7a373733; color:var(--coral); border:1px solid #7a373766; }
+.tag.med{ background:#ad7a4933; color:var(--amber); border:1px solid #ad7a4966; }
+.tag.easy{ background:#1f6e6433; color:var(--teal); border:1px solid #1f6e6466; }
+
+.q-text{ font-size:15px; line-height:1.6; color:var(--text); }
+.q-text code{
+  font-family:'JetBrains Mono',monospace; background:var(--panel-3);
+  padding:1px 6px; border-radius:4px; font-size:13px; color:var(--amber);
+}
+
+.reveal-btn{
+  margin-top:12px;
+  background:none; border:1px solid var(--border); color:var(--text-dim);
+  font-family:'JetBrains Mono',monospace; font-size:12px;
+  padding:7px 12px; border-radius:7px; cursor:pointer;
+  display:inline-flex; align-items:center; gap:6px;
+  transition:all .15s;
+}
+.reveal-btn:hover{ border-color:var(--amber); color:var(--amber); }
+.reveal-btn.open{ border-color:var(--teal); color:var(--teal); }
+
+.answer{
+  display:none;
+  border-top:1px solid var(--border-soft);
+  background:var(--panel-2);
+  padding:18px;
+}
+.answer.show{ display:block; }
+
+.code-block{
+  background:#0a0e13;
+  border:1px solid var(--border-soft);
+  border-radius:8px;
+  padding:14px 16px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:12.5px;
+  line-height:1.65;
+  color:#c9e6df;
+  overflow-x:auto;
+  white-space:pre;
+}
+.code-block .kw{ color:var(--teal); font-weight:700; }
+.code-block .fn{ color:var(--amber); }
+.code-block .str{ color:var(--good); }
+.code-block .com{ color:var(--text-dimmer); font-style:italic; }
+
+.explain{
+  margin-top:14px; font-size:13.5px; line-height:1.7; color:var(--text-dim);
+}
+.explain b{ color:var(--text); }
+.explain .pitfall{
+  margin-top:12px; background:#7a373722; border-left:3px solid var(--coral);
+  padding:10px 14px; border-radius:0 6px 6px 0; font-size:13px; color:#ffb0b0;
+}
+.explain .pitfall b{ color:var(--coral); }
+
+/* ---------- cheatsheet ---------- */
+.cheat-grid{ display:grid; gap:16px; }
+.cheat-card{
+  background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px;
+}
+.cheat-card h3{
+  font-family:'JetBrains Mono',monospace; font-size:13.5px; color:var(--amber);
+  margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+.cheat-card h3::before{ content:'▸'; color:var(--teal); }
+.cheat-card p{ font-size:13px; color:var(--text-dim); line-height:1.6; margin-bottom:10px; }
+
+footer.note{
+  margin-top:40px; font-size:12px; color:var(--text-dimmer);
+  font-family:'JetBrains Mono',monospace; text-align:center;
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="tag">DBI202 · SQL Server</div>
+      <h1>Query Console</h1>
+      <div class="sub">Ôn thi thực hành: JOIN, TOP N, Subquery, Procedure, Trigger</div>
+    </div>
+
+    <div class="progress-block">
+      <div class="row"><span>TIẾN ĐỘ ÔN TẬP</span><span id="progressText">0/0</span></div>
+      <div class="bar-track"><div class="bar-fill" id="progressBar"></div></div>
+    </div>
+
+    <nav class="topics" id="topicNav"></nav>
+
+    <div class="sidebar-footer">
+      Tick "đã ôn xong" ở mỗi câu để theo dõi tiến độ.<br>
+      Dữ liệu chỉ lưu trong phiên hiện tại.
+    </div>
+  </aside>
+
+  <main>
+    <div class="terminal-hero">
+      <div class="dots"><span></span><span></span><span></span></div>
+      <div class="line"><span class="prompt">C:\DBI202&gt;</span> <span class="typed">chuẩn bị thi thực hành SQL Server...</span><span class="cursor"></span></div>
+    </div>
+
+    <div class="searchbar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="searchInput" type="text" placeholder="Tìm câu hỏi theo từ khoá: trigger, subquery, top n, produce...">
+    </div>
+
+    <div id="content"></div>
+
+    <footer class="note">Schema tham chiếu: categories · shippers · customers · employees · orders · suppliers · products · order_details</footer>
+  </main>
+</div>
+
+<script>
+const TOPICS = [
+  { id:'exam',   label:'Đề thi mẫu Q1–Q10' },
+  { id:'basic',  label:'Truy vấn cơ bản' },
+  { id:'erd',    label:'ERD → CREATE TABLE' },
+  { id:'join',   label:'JOIN & GROUP BY' },
+  { id:'topn',   label:'TOP N (khó)' },
+  { id:'sub',    label:'Subquery / NOT EXISTS' },
+  { id:'func',   label:'Hàm chuỗi & ngày tháng' },
+  { id:'proc',   label:'Stored Procedure' },
+  { id:'trig',   label:'Trigger (khó nhất)' },
+  { id:'trans',  label:'Transaction & xử lý lỗi' },
+  { id:'map',    label:'Khi nào dùng gì?' },
+  { id:'cheat',  label:'Cheat sheet (syntax nhanh)' },
+];
+
+const EXAM_INDEX = [
+  { num:1,  title:`ERD → CREATE TABLE (Student — Study — Courses — Teach — Teacher)`, topic:'erd',  id:'e1' },
+  { num:2,  title:`Products priced under 9, hiển thị toàn bộ cột`, topic:'basic', id:'b1' },
+  { num:3,  title:`Products priced under 7, hiển thị 3 cột, sort theo Price`, topic:'basic', id:'b2' },
+  { num:4,  title:`Products trong category 'Produce'`, topic:'join', id:'j2' },
+  { num:5,  title:`Orders đặt vào ngày 2 của bất kỳ tháng nào`, topic:'join', id:'j4' },
+  { num:6,  title:`Top 3 sản phẩm theo tổng Quantity`, topic:'topn', id:'t1' },
+  { num:7,  title:`Top 5 khách hàng, sort theo Quantity, hiển thị TotalOrders`, topic:'topn', id:'t2' },
+  { num:8,  title:`Top 3 khách hàng theo tổng giá trị mua hàng`, topic:'topn', id:'t3' },
+  { num:9,  title:`Procedure sp_GetOrdersByCustomer`, topic:'proc', id:'p1' },
+  { num:10, title:`Khách hàng ở Germany chưa từng đặt đơn`, topic:'sub', id:'s1' },
+];
+
+const QUESTIONS = [
+// ---------------- TRUY VẤN CƠ BẢN (SELECT / WHERE / ORDER BY) ----------------
+{
+  id:'b1', topic:'basic', level:'easy',
+  q:`Tìm tất cả sản phẩm có giá dưới <code>9</code>, hiển thị <b>toàn bộ cột</b>.`,
+  sql:`SELECT *
+FROM products
+WHERE Price < 9;`,
+  explain:`"Hiển thị toàn bộ cột" nghĩa là dùng <code>SELECT *</code> thay vì liệt kê từng cột. Đây là dạng lọc WHERE cơ bản nhất, không cần JOIN hay GROUP BY.`
+},
+{
+  id:'b2', topic:'basic', level:'easy',
+  q:`Tìm sản phẩm có giá dưới <code>7</code>, chỉ hiển thị <code>ProductID</code>, <code>ProductName</code>, <code>Price</code>, sắp xếp theo giá.`,
+  sql:`SELECT ProductID, ProductName, Price
+FROM products
+WHERE Price < 7
+ORDER BY Price;`,
+  explain:`Khi đề chỉ định rõ tên cột cần hiển thị thì không dùng <code>SELECT *</code>. <b>ORDER BY</b> mặc định tăng dần (ASC) nếu không ghi rõ ASC/DESC.`
+},
+{
+  id:'b3', topic:'basic', level:'easy',
+  q:`Tìm khách hàng có tên thành phố (<code>City</code>) bắt đầu bằng chữ <code>'B'</code>.`,
+  sql:`SELECT CustomerName, City
+FROM customers
+WHERE City LIKE 'B%';`,
+  explain:`<b>LIKE</b> dùng để so khớp mẫu chuỗi, kết hợp với ký tự đại diện <code>%</code> (bất kỳ chuỗi ký tự nào, kể cả rỗng) và <code>_</code> (đúng 1 ký tự bất kỳ).`,
+  pitfall:`<code>'B%'</code> = bắt đầu bằng B · <code>'%B'</code> = kết thúc bằng B · <code>'%B%'</code> = chứa chữ B ở bất kỳ vị trí nào. Nhầm lẫn vị trí dấu % là lỗi rất hay gặp.`
+},
+{
+  id:'b4', topic:'basic', level:'easy',
+  q:`Tìm sản phẩm có giá nằm trong khoảng từ <code>10</code> đến <code>20</code> (bao gồm cả hai đầu mút).`,
+  sql:`SELECT ProductName, Price
+FROM products
+WHERE Price BETWEEN 10 AND 20;`,
+  explain:`<b>BETWEEN a AND b</b> tương đương <code>Price &gt;= 10 AND Price &lt;= 20</code> — luôn bao gồm cả hai giá trị biên (đóng ở cả hai đầu), khác với một số ngôn ngữ khác có thể mở ở một đầu.`
+},
+{
+  id:'b5', topic:'basic', level:'easy',
+  q:`Tìm khách hàng thuộc một trong các quốc gia: <code>Germany</code>, <code>France</code>, <code>UK</code>.`,
+  sql:`SELECT CustomerName, Country
+FROM customers
+WHERE Country IN ('Germany', 'France', 'UK');`,
+  explain:`<b>IN (...)</b> ngắn gọn hơn viết nhiều điều kiện OR liên tiếp — tương đương <code>Country = 'Germany' OR Country = 'France' OR Country = 'UK'</code>.`
+},
+{
+  id:'b6', topic:'basic', level:'easy',
+  q:`Liệt kê danh sách các quốc gia (không trùng lặp) hiện đang có khách hàng.`,
+  sql:`SELECT DISTINCT Country
+FROM customers;`,
+  explain:`<b>DISTINCT</b> loại bỏ các dòng kết quả trùng lặp — nếu 20 khách hàng cùng ở Germany, DISTINCT chỉ trả về "Germany" đúng một lần.`
+},
+{
+  id:'b7', topic:'basic', level:'med',
+  q:`Tìm những nhân viên chưa có ghi chú (<code>Notes</code> đang để trống).`,
+  sql:`SELECT EmployeeID, FirstName, LastName
+FROM employees
+WHERE Notes IS NULL;`,
+  explain:`Kiểm tra giá trị rỗng phải dùng <b>IS NULL</b> / <b>IS NOT NULL</b>.`,
+  pitfall:`<code>WHERE Notes = NULL</code> luôn cho kết quả <b>rỗng</b> dù có dòng NULL thật sự — vì NULL nghĩa là "không xác định", phép so sánh bằng (=) với NULL luôn ra UNKNOWN chứ không ra TRUE. Đây là lỗi rất hay gặp khi mới học SQL.`
+},
+
+// ---------------- ERD → CREATE TABLE ----------------
+{
+  id:'e1', topic:'erd', level:'hard',
+  q:`Dựa vào ERD: <b>Student</b> (StudentID PK, StudentName, Email) — quan hệ <b>Study (N:N)</b> — <b>Courses</b> (CourseID PK, CourseName) — quan hệ <b>Teach (1:N)</b> — <b>Teacher</b> (Teacher PK, TeacherName). Viết CREATE TABLE cho toàn bộ ERD, giữ nguyên tên bảng/thuộc tính/kiểu dữ liệu và tên khóa ngoại đúng như PK được tham chiếu.`,
+  sql:`-- 1) Teacher: tạo trước vì Courses sẽ tham chiếu tới
+CREATE TABLE Teacher (
+    Teacher varchar(30) PRIMARY KEY,
+    TeacherName nvarchar(50)
+);
+
+-- 2) Student
+CREATE TABLE Student (
+    StudentID varchar(30) PRIMARY KEY,
+    StudentName nvarchar(30),
+    Email nvarchar(200)
+);
+
+-- 3) Courses: quan hệ Teach (1 Teacher - N Courses) -> FK nằm bên Courses
+CREATE TABLE Courses (
+    CourseID varchar(30) PRIMARY KEY,
+    CourseName nvarchar(30),
+    Teacher varchar(30) FOREIGN KEY REFERENCES Teacher(Teacher)
+);
+
+-- 4) Study: quan hệ N:N -> bắt buộc có bảng trung gian
+CREATE TABLE Study (
+    StudentID varchar(30),
+    CourseID varchar(30),
+    PRIMARY KEY (StudentID, CourseID),
+    FOREIGN KEY (StudentID) REFERENCES Student(StudentID),
+    FOREIGN KEY (CourseID) REFERENCES Courses(CourseID)
+);`,
+  explain:`<b>Thứ tự tạo bảng quan trọng:</b> bảng bị tham chiếu (Teacher) phải được tạo <u>trước</u> bảng chứa khóa ngoại (Courses), nếu không SQL Server sẽ báo lỗi vì FOREIGN KEY REFERENCES tới bảng chưa tồn tại.<br><br>
+  <b>Đọc bản số (cardinality) trên ERD:</b> quan hệ <i>Teach</i> ghi "1" ở phía Teacher nghĩa là 1 giáo viên dạy được nhiều khóa học → khóa ngoại đặt ở bên "N" (Courses), không cần bảng trung gian.<br><br>
+  <b>Quan hệ N:N (Study):</b> cả 2 phía đều là N nên không thể nhét FK vào 1 trong 2 bảng — phải tạo <b>bảng trung gian</b> với khóa chính là cặp (StudentID, CourseID), mỗi cột đồng thời là FK trỏ về bảng gốc.`,
+  pitfall:`Đề yêu cầu rất chặt: <b>tên cột khóa ngoại phải giống hệt tên cột khóa chính được tham chiếu</b> (ví dụ cột FK phải tên là "Teacher" chứ không được đổi thành "TeacherID"), và <b>không</b> được dùng CREATE DATABASE / USE / ALTER DATABASE trong bài nộp — chỉ nộp đúng các câu CREATE TABLE.`
+},
+
+// ---------------- JOIN & GROUP BY ----------------
+{
+  id:'j1', topic:'join', level:'easy',
+  q:`Hiển thị <code>CategoryName</code> và số lượng sản phẩm (<code>ProductCount</code>) trong mỗi category, kể cả category chưa có sản phẩm nào, sắp xếp giảm dần theo số lượng.`,
+  sql:`SELECT c.CategoryName, COUNT(p.ProductID) AS ProductCount
+FROM categories c
+LEFT JOIN products p ON c.CategoryID = p.CategoryID
+GROUP BY c.CategoryName
+ORDER BY ProductCount DESC;`,
+  explain:`Dùng <b>LEFT JOIN</b> thay vì INNER JOIN vì đề yêu cầu hiển thị cả category "chưa có sản phẩm nào" — nếu dùng INNER JOIN, category rỗng sẽ bị loại khỏi kết quả do không có dòng khớp bên products.`
+},
+{
+  id:'j2', topic:'join', level:'easy',
+  q:`Tìm tất cả sản phẩm thuộc category <code>'Produce'</code>, hiển thị <code>ProductName</code>, <code>CategoryName</code>, <code>Description</code>.`,
+  sql:`SELECT p.ProductName, c.CategoryName, c.Description
+FROM products p
+JOIN categories c ON p.CategoryID = c.CategoryID
+WHERE c.CategoryName = 'Produce';`,
+  explain:`JOIN cơ bản 2 bảng qua khoá ngoại <b>CategoryID</b>. Lọc theo tên category bằng WHERE, không cần GROUP BY vì không có hàm tổng hợp.`
+},
+{
+  id:'j3', topic:'join', level:'med',
+  q:`Đếm số đơn hàng (<code>TotalOrders</code>) mà mỗi nhân viên xử lý, hiển thị <code>EmployeeID</code>, <code>EmployeeName</code> (Họ+Tên), chỉ lấy nhân viên có <b>từ 20 đơn trở lên</b>.`,
+  sql:`SELECT e.EmployeeID,
+       e.FirstName + ' ' + e.LastName AS EmployeeName,
+       COUNT(o.OrderID) AS TotalOrders
+FROM employees e
+JOIN orders o ON e.EmployeeID = o.EmployeeID
+GROUP BY e.EmployeeID, e.FirstName, e.LastName
+HAVING COUNT(o.OrderID) >= 20
+ORDER BY TotalOrders DESC;`,
+  explain:`Đây là chỗ hay sai: điều kiện lọc "&gt;= 20 đơn" phải đặt ở <b>HAVING</b> chứ không phải WHERE, vì đó là điều kiện áp dụng <b>sau khi</b> đã tính COUNT (WHERE chỉ lọc dòng thô trước khi gộp nhóm).`,
+  pitfall:`<b>Ghi nhớ thứ tự xử lý logic của SQL Server:</b> FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY. WHERE không "thấy" được các hàm tổng hợp như COUNT/SUM vì lúc đó dữ liệu chưa được gộp nhóm.`
+},
+{
+  id:'j4', topic:'join', level:'med',
+  q:`Hiển thị <code>OrderID</code>, <code>CustomerName</code>, <code>EmployeeName</code> (Họ+Tên), <code>OrderDate</code> cho các đơn hàng đặt vào ngày <b>2 của bất kỳ tháng nào</b>.`,
+  sql:`SELECT o.OrderID, c.CustomerName,
+       e.FirstName + ' ' + e.LastName AS EmployeeName,
+       o.OrderDate
+FROM orders o
+JOIN customers c ON o.CustomerID = c.CustomerID
+JOIN employees e ON o.EmployeeID = e.EmployeeID
+WHERE DAY(o.OrderDate) = 2;`,
+  explain:`Dùng hàm <b>DAY(OrderDate)</b> để lấy ra ngày trong tháng (1–31), không phụ thuộc tháng/năm nào. Tương tự có <b>MONTH()</b> và <b>YEAR()</b> nếu đề hỏi theo tháng hoặc năm cụ thể.`
+},
+
+// ---------------- TOP N (khó) ----------------
+{
+  id:'t1', topic:'topn', level:'med',
+  q:`Tìm 3 sản phẩm có tổng số lượng bán (<code>TotalQuantitySold</code>) cao nhất.`,
+  sql:`SELECT TOP 3
+    p.ProductName,
+    SUM(od.Quantity) AS TotalQuantitySold
+FROM products p
+JOIN order_details od ON p.ProductID = od.ProductID
+GROUP BY p.ProductName
+ORDER BY TotalQuantitySold DESC;`,
+  explain:`Mẫu chuẩn của "top N": GROUP BY để gộp theo sản phẩm, SUM để tính tổng, ORDER BY DESC rồi TOP N để lấy N dòng đầu.`
+},
+{
+  id:'t2', topic:'topn', level:'hard',
+  q:`Tìm 5 khách hàng có <code>TotalOrders</code> (số đơn hàng) cao nhất, nhưng việc chọn ra 5 khách hàng này phải dựa trên <b>tổng số lượng sản phẩm (Quantity) đã mua</b>, không phải dựa trên số đơn.`,
+  sql:`SELECT TOP 5
+    c.CustomerID,
+    c.CustomerName,
+    COUNT(DISTINCT o.OrderID) AS TotalOrders
+FROM customers c
+JOIN orders o ON c.CustomerID = o.CustomerID
+JOIN order_details od ON o.OrderID = od.OrderID
+GROUP BY c.CustomerID, c.CustomerName
+ORDER BY SUM(od.Quantity) DESC;`,
+  explain:`Điểm khó: cột <b>hiển thị</b> (TotalOrders) và cột dùng để <b>sắp xếp</b> (tổng Quantity) là hai thứ khác nhau — SUM(Quantity) không cần xuất hiện trong SELECT, chỉ cần dùng trong ORDER BY. Đồng thời phải dùng <b>COUNT(DISTINCT OrderID)</b> vì sau khi JOIN order_details, mỗi đơn hàng bị lặp thành nhiều dòng (mỗi dòng là 1 sản phẩm trong đơn).`,
+  pitfall:`Nếu dùng <b>COUNT(o.OrderID)</b> thay vì COUNT(DISTINCT ...), một đơn hàng có 3 sản phẩm sẽ bị đếm thành 3 đơn — sai hoàn toàn về ý nghĩa "số đơn hàng".`
+},
+{
+  id:'t3', topic:'topn', level:'med',
+  q:`Tìm 3 khách hàng có tổng giá trị mua hàng (<code>TotalPurchaseValue</code> = Quantity × Price) cao nhất.`,
+  sql:`SELECT TOP 3
+    c.CustomerID,
+    c.CustomerName,
+    SUM(od.Quantity * p.Price) AS TotalPurchaseValue
+FROM customers c
+JOIN orders o ON c.CustomerID = o.CustomerID
+JOIN order_details od ON o.OrderID = od.OrderID
+JOIN products p ON od.ProductID = p.ProductID
+GROUP BY c.CustomerID, c.CustomerName
+ORDER BY TotalPurchaseValue DESC;`,
+  explain:`Cần JOIN thêm bảng <b>products</b> vì Price nằm ở đó, không nằm ở order_details. Giá trị mua hàng luôn là <b>Quantity × Price</b>, đây là công thức lặp lại rất nhiều trong đề thi DBI202.`
+},
+{
+  id:'t4', topic:'topn', level:'hard',
+  q:`<b>Top N theo từng nhóm:</b> Tìm sản phẩm bán chạy nhất (theo tổng Quantity) <u>trong mỗi category</u> — mỗi category chỉ lấy đúng 1 sản phẩm dẫn đầu.`,
+  sql:`WITH ProductSales AS (
+  SELECT
+      p.CategoryID,
+      p.ProductName,
+      SUM(od.Quantity) AS TotalQty,
+      ROW_NUMBER() OVER (
+          PARTITION BY p.CategoryID
+          ORDER BY SUM(od.Quantity) DESC
+      ) AS rn
+  FROM products p
+  JOIN order_details od ON p.ProductID = od.ProductID
+  GROUP BY p.CategoryID, p.ProductName
+)
+SELECT c.CategoryName, ps.ProductName, ps.TotalQty
+FROM ProductSales ps
+JOIN categories c ON ps.CategoryID = c.CategoryID
+WHERE ps.rn = 1;`,
+  explain:`Đây là dạng "top-N-per-group" — TOP N thường không giải quyết được vì nó chỉ cắt trên toàn bộ kết quả, không cắt riêng theo từng nhóm. Giải pháp chuẩn là <b>ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)</b>: PARTITION BY chia dữ liệu thành từng nhóm category, ORDER BY đánh số thứ hạng bên trong từng nhóm, sau đó lọc <code>rn = 1</code> để lấy sản phẩm hạng nhất của mỗi nhóm. Dùng CTE (<code>WITH ... AS</code>) để có thể lọc theo cột <code>rn</code> vì không thể dùng window function trực tiếp trong WHERE.`,
+  pitfall:`Muốn lấy top 2, top 3 mỗi nhóm chỉ cần đổi <code>WHERE rn = 1</code> thành <code>WHERE rn &lt;= 3</code>.`
+},
+
+// ---------------- SUBQUERY / NOT EXISTS ----------------
+{
+  id:'s1', topic:'sub', level:'med',
+  q:`Tìm những khách hàng ở <code>Germany</code> nhưng <b>chưa từng đặt đơn hàng</b> nào.`,
+  sql:`-- Cách 1: dùng NOT EXISTS (an toàn hơn, nên ưu tiên)
+SELECT c.CustomerID, c.CustomerName, c.ContactName,
+       c.Address, c.City, c.PostalCode, c.Country
+FROM customers c
+WHERE c.Country = 'Germany'
+  AND NOT EXISTS (
+      SELECT 1 FROM orders o WHERE o.CustomerID = c.CustomerID
+  );
+
+-- Cách 2: dùng NOT IN (phải thêm điều kiện chặn NULL)
+SELECT c.CustomerID, c.CustomerName, c.ContactName,
+       c.Address, c.City, c.PostalCode, c.Country
+FROM customers c
+WHERE c.Country = 'Germany'
+  AND c.CustomerID NOT IN (
+      SELECT o.CustomerID FROM orders o
+      WHERE o.CustomerID IS NOT NULL
+  );`,
+  explain:`NOT EXISTS dùng <b>correlated subquery</b> (subquery bên trong tham chiếu ngược ra bảng ngoài qua <code>o.CustomerID = c.CustomerID</code>) để kiểm tra "có tồn tại đơn hàng nào của khách này không", rồi phủ định lại.`,
+  pitfall:`<b>Bẫy kinh điển của NOT IN:</b> nếu subquery trả về dù chỉ 1 giá trị NULL, toàn bộ mệnh đề NOT IN sẽ không trả về dòng nào — vì SQL so sánh "x NOT IN (a, b, NULL)" luôn ra UNKNOWN cho mọi x. Vì vậy nếu dùng NOT IN, luôn phải lọc NULL trong subquery, hoặc an toàn nhất là dùng NOT EXISTS.`
+},
+{
+  id:'s2', topic:'sub', level:'easy',
+  q:`Tìm những sản phẩm có giá (<code>Price</code>) cao hơn giá trung bình của <b>toàn bộ</b> sản phẩm.`,
+  sql:`SELECT ProductName, Price
+FROM products
+WHERE Price > (
+    SELECT AVG(Price) FROM products
+);`,
+  explain:`Subquery không tương quan (non-correlated) — chỉ chạy 1 lần, trả về đúng 1 giá trị (giá trung bình), rồi dùng để so sánh với từng dòng ở bảng ngoài.`
+},
+{
+  id:'s3', topic:'sub', level:'hard',
+  q:`Tìm những category có <b>số lượng sản phẩm nhiều hơn</b> số lượng sản phẩm trung bình của mỗi category.`,
+  sql:`SELECT c.CategoryName, COUNT(p.ProductID) AS ProductCount
+FROM categories c
+JOIN products p ON c.CategoryID = p.CategoryID
+GROUP BY c.CategoryName
+HAVING COUNT(p.ProductID) > (
+    SELECT AVG(cnt * 1.0)
+    FROM (
+        SELECT COUNT(*) AS cnt
+        FROM products
+        GROUP BY CategoryID
+    ) AS categoryCounts
+);`,
+  explain:`Đây là subquery <b>2 tầng</b>: tầng trong cùng GROUP BY theo CategoryID để đếm số sản phẩm mỗi category, sau đó tính AVG của các con số đếm đó. Kết quả (một số duy nhất — "trung bình sản phẩm/category") được dùng ở mệnh đề <b>HAVING</b> của câu truy vấn ngoài để so sánh với số sản phẩm thực tế mỗi category.`,
+  pitfall:`Nhân với <code>1.0</code> (<code>cnt * 1.0</code>) để ép kiểu sang số thực — nếu không, AVG trên cột INT có thể bị làm tròn xuống số nguyên, gây sai kết quả so sánh.`
+},
+{
+  id:'s4', topic:'sub', level:'hard',
+  q:`Với mỗi khách hàng, tìm đơn hàng có <b>giá trị lớn nhất</b> (Quantity × Price) mà khách đó từng đặt — hiển thị OrderID, CustomerID, OrderDate.`,
+  sql:`SELECT o.OrderID, o.CustomerID, o.OrderDate
+FROM orders o
+WHERE o.OrderID = (
+    SELECT TOP 1 o2.OrderID
+    FROM orders o2
+    JOIN order_details od2 ON o2.OrderID = od2.OrderID
+    JOIN products p2 ON od2.ProductID = p2.ProductID
+    WHERE o2.CustomerID = o.CustomerID
+    GROUP BY o2.OrderID
+    ORDER BY SUM(od2.Quantity * p2.Price) DESC
+);`,
+  explain:`Đây là <b>correlated subquery</b> nâng cao: subquery bên trong bị "khoá" vào từng khách hàng của bảng ngoài qua điều kiện <code>o2.CustomerID = o.CustomerID</code>, nên nó chạy lại một lần cho mỗi khách hàng khác nhau, mỗi lần chỉ lấy TOP 1 đơn có giá trị cao nhất của riêng khách đó.`,
+  pitfall:`Dạng này khác dạng "top N per group" ở câu Trigger/TOP N — ở đây dùng correlated subquery vì so sánh OrderID = OrderID (khoá chính), còn ROW_NUMBER() OVER (PARTITION BY) phù hợp hơn khi cần lấy nhiều cột cùng lúc hoặc top N &gt; 1.`
+},
+
+// ---------------- STORED PROCEDURE ----------------
+{
+  id:'p1', topic:'proc', level:'med',
+  q:`Viết procedure <code>sp_GetOrdersByCustomer</code> nhận vào <code>@CustomerID</code>, trả về <code>OrderID</code>, <code>OrderDate</code>, <code>TotalAmount</code> của khách hàng đó.`,
+  sql:`CREATE PROCEDURE sp_GetOrdersByCustomer
+    @CustomerID INT
+AS
+BEGIN
+    SELECT
+        o.OrderID,
+        o.OrderDate,
+        SUM(od.Quantity * p.Price) AS TotalAmount
+    FROM orders o
+    JOIN order_details od ON o.OrderID = od.OrderID
+    JOIN products p ON od.ProductID = p.ProductID
+    WHERE o.CustomerID = @CustomerID
+    GROUP BY o.OrderID, o.OrderDate
+    ORDER BY o.OrderDate;
+END
+
+-- Gọi thử:
+EXEC sp_GetOrdersByCustomer @CustomerID = 10;`,
+  explain:`Mỗi đơn hàng có nhiều sản phẩm (nhiều dòng ở order_details), nên phải <b>GROUP BY OrderID, OrderDate</b> để tính TotalAmount đúng cho từng đơn — thiếu GROUP BY sẽ bị lặp dòng và tính sai tổng tiền.`
+},
+{
+  id:'p2', topic:'proc', level:'hard',
+  q:`Viết procedure <code>sp_GetCustomerOrderCount</code> có tham số <b>OUTPUT</b>: nhận vào <code>@CustomerID</code>, trả ra <code>@TotalOrders</code> qua tham số output (không dùng SELECT).`,
+  sql:`CREATE PROCEDURE sp_GetCustomerOrderCount
+    @CustomerID INT,
+    @TotalOrders INT OUTPUT
+AS
+BEGIN
+    SELECT @TotalOrders = COUNT(*)
+    FROM orders
+    WHERE CustomerID = @CustomerID;
+END
+
+-- Gọi thử:
+DECLARE @cnt INT;
+EXEC sp_GetCustomerOrderCount
+    @CustomerID = 20,
+    @TotalOrders = @cnt OUTPUT;
+
+SELECT @cnt AS TotalOrders;`,
+  explain:`Từ khoá <b>OUTPUT</b> phải khai báo cả ở phần định nghĩa tham số của procedure lẫn khi gọi EXEC. Bên trong procedure, dùng cú pháp <code>SELECT @bien = ...</code> để gán giá trị vào biến thay vì trả ra một tập kết quả.`,
+  pitfall:`Quên viết <code>OUTPUT</code> ở lệnh EXEC (chỉ viết ở CREATE PROCEDURE) là lỗi rất hay gặp — khi đó biến ngoài sẽ không nhận được giá trị trả về.`
+},
+{
+  id:'p3', topic:'proc', level:'med',
+  q:`Viết procedure kiểm tra khách hàng có tồn tại không trước khi truy vấn; nếu không tồn tại thì thông báo và dừng lại.`,
+  sql:`CREATE PROCEDURE sp_GetCustomerInfo
+    @CustomerID INT
+AS
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM customers WHERE CustomerID = @CustomerID
+    )
+    BEGIN
+        PRINT N'Khách hàng không tồn tại';
+        RETURN;
+    END
+
+    SELECT * FROM customers WHERE CustomerID = @CustomerID;
+END`,
+  explain:`<b>IF NOT EXISTS</b> + <b>RETURN</b> là mẫu chuẩn để "chặn sớm" (early return) trong procedure — tránh chạy tiếp các câu lệnh phía sau khi điều kiện đầu vào không hợp lệ. Tiền tố <code>N'...'</code> dùng khi chuỗi có ký tự Unicode (ví dụ tiếng Việt có dấu).`
+},
+
+// ---------------- TRIGGER (khó nhất) ----------------
+{
+  id:'g1', topic:'trig', level:'med',
+  q:`Viết trigger <b>AFTER INSERT</b> trên bảng <code>orders</code>: mỗi khi có đơn hàng mới được thêm vào, tự động ghi log vào bảng <code>OrderLog</code>.`,
+  sql:`CREATE TABLE OrderLog (
+    LogID INT IDENTITY PRIMARY KEY,
+    OrderID INT,
+    ActionType VARCHAR(20),
+    ActionDate DATETIME DEFAULT GETDATE()
+);
+
+CREATE TRIGGER trg_AfterInsertOrder
+ON orders
+AFTER INSERT
+AS
+BEGIN
+    INSERT INTO OrderLog (OrderID, ActionType)
+    SELECT OrderID, 'INSERT'
+    FROM inserted;
+END`,
+  explain:`Bảng ảo <b>inserted</b> chứa các dòng vừa được thêm (chỉ tồn tại bên trong trigger). AFTER INSERT chạy <i>sau khi</i> dữ liệu đã được ghi vào bảng orders thành công.`,
+  pitfall:`Trigger có thể bị kích hoạt bởi <b>nhiều dòng cùng lúc</b> (ví dụ INSERT INTO ... SELECT chèn 100 dòng một lần) — vì vậy luôn viết trigger theo kiểu "set-based" (dùng SELECT FROM inserted) thay vì giả định chỉ có 1 dòng.`
+},
+{
+  id:'g2', topic:'trig', level:'hard',
+  q:`Viết trigger <b>INSTEAD OF DELETE</b> trên bảng <code>customers</code>: ngăn không cho xoá khách hàng nếu khách đó vẫn còn đơn hàng trong hệ thống.`,
+  sql:`CREATE TRIGGER trg_PreventDeleteCustomer
+ON customers
+INSTEAD OF DELETE
+AS
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM deleted d
+        JOIN orders o ON d.CustomerID = o.CustomerID
+    )
+    BEGIN
+        RAISERROR(N'Không thể xoá khách hàng đã có đơn hàng!', 16, 1);
+        RETURN;
+    END
+
+    DELETE FROM customers
+    WHERE CustomerID IN (SELECT CustomerID FROM deleted);
+END`,
+  explain:`<b>INSTEAD OF</b> thay thế hoàn toàn hành động DELETE gốc bằng logic bên trong trigger — nếu không tự viết lệnh DELETE ở cuối, dòng dữ liệu sẽ <u>không bao giờ bị xoá</u> dù không có lỗi. Bảng ảo <b>deleted</b> chứa các dòng đang được yêu cầu xoá.`,
+  pitfall:`AFTER DELETE khác với INSTEAD OF DELETE: AFTER chạy sau khi dữ liệu đã bị xoá thật (không thể "chặn" hành động), nên muốn ngăn chặn một thao tác thì bắt buộc phải dùng INSTEAD OF.`
+},
+{
+  id:'g3', topic:'trig', level:'hard',
+  q:`Viết trigger <b>AFTER UPDATE</b> trên bảng <code>products</code>: nếu ai đó cập nhật <code>Price</code> thành giá trị âm, huỷ thao tác và báo lỗi.`,
+  sql:`CREATE TRIGGER trg_CheckPriceUpdate
+ON products
+AFTER UPDATE
+AS
+BEGIN
+    IF EXISTS (SELECT 1 FROM inserted WHERE Price < 0)
+    BEGIN
+        RAISERROR(N'Giá sản phẩm không được âm!', 16, 1);
+        ROLLBACK TRANSACTION;
+    END
+END`,
+  explain:`Ở AFTER UPDATE, dữ liệu <b>đã được ghi</b> vào bảng rồi. Muốn "huỷ" thay đổi đó, phải dùng <b>ROLLBACK TRANSACTION</b> để hoàn tác toàn bộ giao dịch — khác với INSTEAD OF, nơi ta chặn được hành động trước khi nó xảy ra.`,
+  pitfall:`Sau khi ROLLBACK, các câu lệnh phía sau trong trigger vẫn có thể tiếp tục chạy trừ khi thêm <code>RETURN</code> ngay sau ROLLBACK — nên viết đầy đủ <code>ROLLBACK TRANSACTION; RETURN;</code> để an toàn.`
+},
+{
+  id:'g4', topic:'trig', level:'hard',
+  q:`Viết trigger <b>AFTER UPDATE</b> ghi lại lịch sử thay đổi giá sản phẩm vào bảng <code>PriceChangeLog</code>, lưu cả giá cũ và giá mới, chỉ ghi log khi <code>Price</code> thực sự thay đổi.`,
+  sql:`CREATE TABLE PriceChangeLog (
+    LogID INT IDENTITY PRIMARY KEY,
+    ProductID INT,
+    OldPrice FLOAT,
+    NewPrice FLOAT,
+    ChangeDate DATETIME DEFAULT GETDATE()
+);
+
+CREATE TRIGGER trg_LogPriceChange
+ON products
+AFTER UPDATE
+AS
+BEGIN
+    IF UPDATE(Price)
+    BEGIN
+        INSERT INTO PriceChangeLog (ProductID, OldPrice, NewPrice)
+        SELECT i.ProductID, d.Price, i.Price
+        FROM inserted i
+        JOIN deleted d ON i.ProductID = d.ProductID
+        WHERE i.Price <> d.Price;
+    END
+END`,
+  explain:`Đây là dạng trigger khó nhất vì phải kết hợp <b>cả 2 bảng ảo</b>: <code>deleted</code> chứa giá trị <u>trước khi update</u>, <code>inserted</code> chứa giá trị <u>sau khi update</u> — JOIN 2 bảng này qua khoá chính (ProductID) để so sánh cũ/mới trên cùng một dòng. Hàm <b>UPDATE(Price)</b> kiểm tra xem cột Price có nằm trong câu lệnh UPDATE vừa chạy hay không, giúp trigger không tốn công xử lý khi người dùng chỉ sửa các cột khác.`,
+  pitfall:`Nếu không thêm <code>WHERE i.Price &lt;&gt; d.Price</code>, trigger sẽ ghi log ngay cả khi UPDATE chạy nhưng giá trị Price không hề đổi (ví dụ UPDATE SET Price = Price).`
+},
+
+// ---------------- CHEAT SHEET ----------------
+{ id:'cheat', topic:'cheat', level:'cheat' }
+];
+
+function highlight(code){
+  const kws = ['SELECT','FROM','WHERE','JOIN','LEFT JOIN','INNER JOIN','GROUP BY','ORDER BY','HAVING','AS','ON',
+    'CREATE PROCEDURE','CREATE TRIGGER','CREATE TABLE','BEGIN','END','IF','ELSE','EXISTS','NOT EXISTS','NOT IN','IN',
+    'RETURN','EXEC','DECLARE','OUTPUT','AFTER','INSTEAD OF','INSERT','UPDATE','DELETE','ROLLBACK TRANSACTION',
+    'RAISERROR','PRINT','WITH','OVER','PARTITION BY','TOP','DESC','ASC','AND','OR','DISTINCT','SUM','COUNT','AVG',
+    'PRIMARY KEY','IDENTITY','DEFAULT','GETDATE','DAY','MONTH','YEAR','SET','NULL','IS NOT NULL','UNION'];
+  let out = code
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  out = out.replace(/(--.*)/g, '<span class="com">$1</span>');
+  out = out.replace(/'([^']*)'/g, '<span class="str">\'$1\'</span>');
+  kws.sort((a,b)=>b.length-a.length).forEach(k=>{
+    const re = new RegExp('\\b'+k.replace(/ /g,'\\s+')+'\\b','g');
+    out = out.replace(re, m=>'<span class="kw">'+m+'</span>');
+  });
+  out = out.replace(/\b([A-Za-z_]+)\(/g, (m,fn)=>{
+    if(/kw">/.test(m)) return m;
+    return '<span class="fn">'+fn+'</span>(';
+  });
+  return out;
+}
+
+const state = { active:'join', done:new Set(), search:'' };
+
+function renderNav(){
+  const nav = document.getElementById('topicNav');
+  nav.innerHTML = '';
+  TOPICS.forEach(t=>{
+    const count = QUESTIONS.filter(q=>q.topic===t.id && q.level!=='cheat').length;
+    const btn = document.createElement('button');
+    btn.className = 'topic-btn' + (state.active===t.id?' active':'');
+    btn.innerHTML = `<span>${t.label}</span>` + (count ? `<span class="n">${count}</span>` : '');
+    btn.onclick = ()=>{ state.active=t.id; state.search=''; document.getElementById('searchInput').value=''; render(); };
+    nav.appendChild(btn);
+  });
+}
+
+function levelTag(level){
+  if(level==='hard') return '<span class="tag hard">Khó</span>';
+  if(level==='med') return '<span class="tag med">Trung bình</span>';
+  if(level==='easy') return '<span class="tag easy">Cơ bản</span>';
+  return '';
+}
+
+function renderProgress(){
+  const total = QUESTIONS.filter(q=>q.level!=='cheat').length;
+  const done = state.done.size;
+  document.getElementById('progressText').textContent = `${done}/${total}`;
+  document.getElementById('progressBar').style.width = total? (done/total*100)+'%' : '0%';
+}
+
+function questionCard(q){
+  const isDone = state.done.has(q.id);
+  const card = document.createElement('div');
+  card.className = 'card' + (isDone?' done':'');
+
+  const topicLabel = TOPICS.find(t=>t.id===q.topic)?.label || '';
+
+  card.innerHTML = `
+    <div class="card-head">
+      <div class="card-check ${isDone?'checked':''}" data-id="${q.id}">${isDone?'✓':''}</div>
+      <div class="card-body">
+        <div class="card-tags">${levelTag(q.level)}<span class="tag" style="background:var(--panel-3);color:var(--text-dim);border:1px solid var(--border)">${topicLabel}</span></div>
+        <div class="q-text">${q.q}</div>
+        <button class="reveal-btn">▸ Xem lời giải</button>
+      </div>
+    </div>
+    <div class="answer">
+      <div class="code-block">${highlight(q.sql)}</div>
+      <div class="explain"><b>Giải thích:</b><br>${q.explain}${q.pitfall?`<div class="pitfall">${q.pitfall}</div>`:''}</div>
+    </div>
+  `;
+
+  card.querySelector('.card-check').onclick = ()=>{
+    if(state.done.has(q.id)) state.done.delete(q.id); else state.done.add(q.id);
+    render();
+  };
+
+  const btn = card.querySelector('.reveal-btn');
+  const ans = card.querySelector('.answer');
+  btn.onclick = ()=>{
+    const open = ans.classList.toggle('show');
+    btn.classList.toggle('open', open);
+    btn.textContent = open ? '▾ Ẩn lời giải' : '▸ Xem lời giải';
+  };
+
+  return card;
+}
+
+function cheatSheet(){
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="section-title">Cheat sheet & lỗi hay gặp</div>
+    <div class="section-desc">Bảng tra nhanh cú pháp và các lỗi kinh điển khi làm bài thi thực hành SQL Server.</div>
+    <div class="cheat-grid">
+      <div class="cheat-card">
+        <h3>Thứ tự xử lý logic của một câu SELECT</h3>
+        <p><b>FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY</b></p>
+        <p>WHERE lọc dòng thô trước khi gộp nhóm, nên không dùng được hàm tổng hợp (SUM/COUNT/AVG) trong WHERE. Muốn lọc theo kết quả tổng hợp, phải dùng HAVING.</p>
+      </div>
+      <div class="cheat-card">
+        <h3>NOT IN vs NOT EXISTS</h3>
+        <p>NOT IN sẽ trả về <b>rỗng toàn bộ</b> nếu subquery chứa dù chỉ một giá trị NULL. NOT EXISTS (correlated subquery) không gặp vấn đề này và luôn được khuyến khích dùng khi kiểm tra "không tồn tại bản ghi liên quan".</p>
+      </div>
+      <div class="cheat-card">
+        <h3>COUNT(DISTINCT x) khi JOIN nhiều bảng</h3>
+        <p>Khi JOIN qua bảng chi tiết (như order_details), một bản ghi cha (đơn hàng) có thể bị lặp thành nhiều dòng con. Luôn dùng COUNT(DISTINCT khoá_chính) nếu muốn đếm số bản ghi cha thực sự, không phải số dòng sau JOIN.</p>
+      </div>
+      <div class="cheat-card">
+        <h3>Top N theo từng nhóm</h3>
+        <p>TOP N chỉ cắt trên toàn bộ kết quả. Muốn "N sản phẩm bán chạy nhất mỗi category", dùng:</p>
+        <div class="code-block">${highlight(`ROW_NUMBER() OVER (
+    PARTITION BY <cột nhóm>
+    ORDER BY <cột xếp hạng> DESC
+) AS rn
+-- rồi lọc WHERE rn <= N trong CTE (WITH ... AS)`)}</div>
+      </div>
+      <div class="cheat-card">
+        <h3>Khung sườn Stored Procedure</h3>
+        <div class="code-block">${highlight(`CREATE PROCEDURE sp_TenProcedure
+    @Tham1 INT,
+    @Tham2 INT OUTPUT
+AS
+BEGIN
+    -- logic ở đây
+    SELECT @Tham2 = COUNT(*) FROM orders WHERE CustomerID = @Tham1;
+END
+
+-- Gọi:
+DECLARE @kq INT;
+EXEC sp_TenProcedure @Tham1 = 10, @Tham2 = @kq OUTPUT;`)}</div>
+      </div>
+      <div class="cheat-card">
+        <h3>Khung sườn Trigger & bảng ảo inserted/deleted</h3>
+        <p><b>inserted</b>: dữ liệu mới (sau INSERT/UPDATE). <b>deleted</b>: dữ liệu cũ (trước UPDATE, hoặc dữ liệu bị xoá ở DELETE).</p>
+        <div class="code-block">${highlight(`-- AFTER: chạy SAU khi thao tác đã xảy ra, muốn huỷ phải ROLLBACK
+CREATE TRIGGER trg_Ten ON bang AFTER INSERT|UPDATE|DELETE
+AS BEGIN
+    IF EXISTS (SELECT 1 FROM inserted WHERE dieu_kien)
+    BEGIN
+        RAISERROR('Thông báo lỗi', 16, 1);
+        ROLLBACK TRANSACTION; RETURN;
+    END
+END
+
+-- INSTEAD OF: THAY THẾ hoàn toàn thao tác gốc, phải tự viết lại lệnh INSERT/UPDATE/DELETE thật
+CREATE TRIGGER trg_Ten ON bang INSTEAD OF DELETE
+AS BEGIN
+    IF EXISTS (...) BEGIN RAISERROR(...,16,1); RETURN; END
+    DELETE FROM bang WHERE khoa IN (SELECT khoa FROM deleted);
+END`)}</div>
+      </div>
+      <div class="cheat-card">
+        <h3>So sánh giá trị cũ/mới trong trigger UPDATE</h3>
+        <p>JOIN inserted với deleted qua khoá chính để lấy được cả giá trị trước và sau trên cùng 1 dòng. Dùng hàm <b>UPDATE(tên_cột)</b> để kiểm tra một cột cụ thể có nằm trong câu lệnh UPDATE hay không.</p>
+      </div>
+    </div>
+  `;
+  return wrap;
+}
+
+function techniqueMap(){
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="section-title">Khi nào dùng gì?</div>
+    <div class="section-desc">Bản đồ quyết định: nhìn đề bài thấy dấu hiệu gì thì chọn kỹ thuật nào — tổng hợp từ toàn bộ dạng bài Q1–Q10 và các câu mở rộng.</div>
+    <div class="cheat-grid">
+
+      <div class="cheat-card">
+        <h3>INNER JOIN vs LEFT JOIN</h3>
+        <p><b>Dùng khi nào:</b> INNER JOIN khi chỉ cần các dòng <b>có khớp ở cả 2 bảng</b> (vd: sản phẩm thuộc category cụ thể). LEFT JOIN khi cần giữ <b>toàn bộ dòng bên trái</b> kể cả không có dòng khớp bên phải (vd: liệt kê mọi category kể cả category chưa có sản phẩm nào).</p>
+        <p><b>Cách nhận biết trong đề:</b> đề nói "kể cả... chưa có", "tất cả X (dù không có Y)" → LEFT JOIN. Đề chỉ nói "tìm X thuộc Y" → INNER JOIN là đủ.</p>
+      </div>
+
+      <div class="cheat-card">
+        <h3>WHERE vs HAVING</h3>
+        <p><b>Dùng khi nào:</b> WHERE lọc trên <b>cột gốc</b>, chạy trước khi gộp nhóm. HAVING lọc trên <b>kết quả của hàm tổng hợp</b> (SUM, COUNT, AVG...), chạy sau GROUP BY.</p>
+        <p><b>Cách nhận biết:</b> điều kiện có chứa "tổng", "số lượng", "trung bình" của một nhóm (vd "nhân viên có từ 20 đơn trở lên") → chắc chắn là HAVING, không phải WHERE.</p>
+      </div>
+
+      <div class="cheat-card">
+        <h3>Subquery vs JOIN</h3>
+        <p><b>Dùng JOIN khi:</b> cần lấy thêm <b>cột dữ liệu</b> từ bảng khác để hiển thị ra kết quả (vd lấy CategoryName để hiển thị).</p>
+        <p><b>Dùng Subquery khi:</b> chỉ cần <b>so sánh hoặc kiểm tra điều kiện</b> chứ không cần hiển thị cột của bảng kia — ví dụ "giá cao hơn giá trung bình", "khách hàng không có đơn hàng nào".</p>
+      </div>
+
+      <div class="cheat-card">
+        <h3>NOT IN vs NOT EXISTS</h3>
+        <p><b>Luôn ưu tiên NOT EXISTS</b> khi kiểm tra "không tồn tại bản ghi liên quan" (vd Q10: khách chưa từng đặt đơn). NOT EXISTS dùng correlated subquery nên không bao giờ bị lỗi vì NULL.</p>
+        <p><b>Chỉ dùng NOT IN</b> khi chắc chắn 100% cột trong subquery không có giá trị NULL — nếu không chắc, luôn chọn NOT EXISTS để an toàn.</p>
+      </div>
+
+      <div class="cheat-card">
+        <h3>Correlated vs Non-correlated subquery</h3>
+        <p><b>Non-correlated</b> (chạy độc lập, 1 lần): dùng khi giá trị so sánh là <b>một con số chung cho toàn bộ bảng</b> — vd "giá trung bình của mọi sản phẩm".</p>
+        <p><b>Correlated</b> (subquery tham chiếu ngược ra bảng ngoài, chạy lại theo từng dòng): dùng khi giá trị so sánh <b>phụ thuộc vào từng dòng</b> của bảng ngoài — vd "đơn hàng lớn nhất của MỖI khách hàng", "khách này có đơn hàng nào không".</p>
+      </div>
+
+      <div class="cheat-card">
+        <h3>TOP N vs ROW_NUMBER() OVER (PARTITION BY...)</h3>
+        <p><b>TOP N</b>: dùng khi lấy N dòng đầu trên <b>toàn bộ</b> kết quả đã sắp xếp (vd Q6: 3 sản phẩm bán chạy nhất toàn hệ thống).</p>
+        <p><b>ROW_NUMBER() OVER (PARTITION BY...)</b>: dùng khi cần N dòng đầu <b>cho từng nhóm riêng biệt</b> (vd: sản phẩm bán chạy nhất của MỖI category). TOP N không làm được việc này vì nó không biết "nhóm" là gì.</p>
+      </div>
+
+      <div class="cheat-card">
+        <h3>Cột hiển thị khác cột sắp xếp</h3>
+        <p><b>Dấu hiệu nhận biết (như Q7):</b> đề yêu cầu hiển thị một cột (vd TotalOrders = số đơn) nhưng lại chọn ra N dòng theo một tiêu chí khác (vd tổng Quantity). Khi đó cột dùng để ORDER BY <b>không nhất thiết phải có trong SELECT</b>.</p>
+      </div>
+
+      <div class="cheat-card">
+        <h3>Khi nào cần Stored Procedure thay vì SELECT thường</h3>
+        <p><b>Dùng Stored Procedure khi:</b> logic truy vấn sẽ được <b>gọi lại nhiều lần với tham số khác nhau</b> (vd tra cứu đơn hàng theo bất kỳ CustomerID nào) — đóng gói 1 lần, tái sử dụng nhiều lần thay vì sửa tay câu SELECT mỗi lần.</p>
+        <p><b>Dùng tham số OUTPUT khi:</b> cần trả về đúng <b>1 giá trị đơn lẻ</b> để chương trình/gọi tiếp theo dùng lại (vd tổng số đơn của khách), thay vì trả về cả một bảng kết quả.</p>
+      </div>
+
+      <div class="cheat-card">
+        <h3>AFTER Trigger vs INSTEAD OF Trigger</h3>
+        <p><b>AFTER</b>: dùng để <b>phản ứng sau khi</b> dữ liệu đã thay đổi thật — ghi log, kiểm tra hợp lệ rồi ROLLBACK nếu sai. Không thể "chặn" hành động trước khi nó xảy ra.</p>
+        <p><b>INSTEAD OF</b>: dùng để <b>thay thế/chặn hoàn toàn</b> hành động gốc trước khi nó xảy ra — ví dụ ngăn không cho xoá khách hàng còn đơn hàng. Bắt buộc phải tự viết lại lệnh INSERT/UPDATE/DELETE thật bên trong, nếu không hành động sẽ không xảy ra luôn.</p>
+      </div>
+
+      <div class="cheat-card">
+        <h3>inserted vs deleted trong Trigger</h3>
+        <p><b>inserted</b>: chứa dữ liệu <b>mới</b> (sau INSERT hoặc sau UPDATE). <b>deleted</b>: chứa dữ liệu <b>cũ</b> (trước UPDATE, hoặc dòng bị xoá ở DELETE).</p>
+        <p><b>Khi UPDATE</b>: cả 2 bảng đều có dữ liệu cùng lúc — JOIN inserted với deleted qua khóa chính để so sánh giá trị cũ/mới trên cùng 1 dòng (vd log lịch sử đổi giá).</p>
+      </div>
+
+    </div>
+  `;
+  return wrap;
+}
+
+function render(){
+  renderNav();
+  renderProgress();
+  const content = document.getElementById('content');
+  content.innerHTML = '';
+
+  if(state.active === 'cheat'){
+    content.appendChild(cheatSheet());
+    return;
+  }
+
+  if(state.active === 'map'){
+    content.appendChild(techniqueMap());
+    return;
+  }
+
+  const topic = TOPICS.find(t=>t.id===state.active);
+  let list = QUESTIONS.filter(q=>q.topic===state.active && q.level!=='cheat');
+
+  if(state.search.trim()){
+    const kw = state.search.trim().toLowerCase();
+    list = QUESTIONS.filter(q=>q.level!=='cheat' &&
+      (q.q.toLowerCase().includes(kw) || q.explain.toLowerCase().includes(kw) || q.sql.toLowerCase().includes(kw)));
+  }
+
+  const title = document.createElement('div');
+  title.className = 'section-title';
+  title.textContent = state.search.trim() ? `Kết quả tìm kiếm: "${state.search}"` : topic.label;
+  content.appendChild(title);
+
+  const desc = document.createElement('div');
+  desc.className = 'section-desc';
+  const descMap = {
+    exam:'Toàn bộ 10 câu của đề thi mẫu, giải đầy đủ theo đúng thứ tự — dùng để luyện lại như một bài thi thật.',
+    erd:'Đọc ERD và viết CREATE TABLE đúng thứ tự, đúng tên cột, đúng khóa ngoại — kể cả quan hệ N:N cần bảng trung gian.',
+    join:'JOIN nhiều bảng, GROUP BY / HAVING — nền tảng bắt buộc thuộc lòng.',
+    topn:'Dạng "top N" và biến thể khó: sắp xếp theo cột không hiển thị, top N theo từng nhóm bằng ROW_NUMBER().',
+    sub:'Subquery lồng nhau, correlated subquery, và bẫy NOT IN với NULL.',
+    proc:'Stored procedure có tham số đầu vào, OUTPUT, và kiểm tra điều kiện trước khi xử lý.',
+    trig:'Trigger AFTER và INSTEAD OF, dùng bảng ảo inserted/deleted — phần hay bị mất điểm nhất.'
+  };
+  desc.textContent = state.search.trim() ? `Tìm thấy ${list.length} câu hỏi phù hợp.` : (descMap[state.active] || '');
+  content.appendChild(desc);
+
+  if(list.length === 0){
+    const empty = document.createElement('div');
+    empty.style.cssText = 'color:var(--text-dimmer);font-family:JetBrains Mono,monospace;font-size:13px;padding:20px 0;';
+    empty.textContent = 'Không có câu hỏi phù hợp.';
+    content.appendChild(empty);
+    return;
+  }
+
+  list.forEach(q => content.appendChild(questionCard(q)));
+}
+
+document.getElementById('searchInput').addEventListener('input', e=>{
+  state.search = e.target.value;
+  state.active = state.search.trim() ? '__search__' : 'join';
+  render();
+});
+
+render();
+</script>
+</body>
+</html>
